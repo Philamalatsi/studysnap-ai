@@ -4,7 +4,7 @@ import { MaterialsList } from "@/components/materials/materials-list";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
-import { getMaterialsByUserId } from "@/lib/supabase/queries";
+import { getMaterialFoldersByUserId, getMaterialStudyStatusMap, getMaterialsByUserId } from "@/lib/supabase/queries";
 
 export const metadata = {
   title: "Materials",
@@ -18,7 +18,11 @@ export default async function MaterialsPage() {
 
   if (!user) return null;
 
-  const materials = await getMaterialsByUserId(user.id);
+  const [materials, folders, studyStatusByMaterialId] = await Promise.all([
+    getMaterialsByUserId(user.id),
+    getMaterialFoldersByUserId(user.id),
+    getMaterialStudyStatusMap(user.id),
+  ]);
 
   return (
     <>
@@ -35,7 +39,11 @@ export default async function MaterialsPage() {
         }
       />
       <div className="p-6">
-        <MaterialsList materials={materials} />
+        <MaterialsList
+          materials={materials}
+          folders={folders}
+          studyStatusByMaterialId={studyStatusByMaterialId}
+        />
       </div>
     </>
   );

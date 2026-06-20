@@ -1,47 +1,43 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { MaterialTitleEditor } from "@/components/materials/material-title-editor";
+import { MaterialDetailHeader } from "@/components/materials/material-detail-header";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { MaterialDetailTabs } from "@/components/materials/material-detail-tabs";
 import { MaterialProcessingRunner } from "@/components/materials/material-processing-runner";
 import { RetryExtractionButton } from "@/components/materials/retry-extraction-button";
-import { Badge } from "@/components/ui/badge";
 import { isOpenAIConfigured } from "@/lib/ai/openai";
 import {
   formatMaterialDate,
   formatMaterialType,
-  formatProcessingStatus,
   mimeTypeLabel,
 } from "@/lib/materials/display";
 import { getMaterialSignedUrl } from "@/lib/materials/storage";
+import type { MaterialStudyStatus } from "@/lib/materials/study-status";
 import { formatFileSize } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 import {
   getMaterialById,
   getStudyOutputForMaterial,
 } from "@/lib/supabase/queries";
-import type { ProcessingStatus } from "@/types/database";
+import type { StudyOutput } from "@/types/database";
 
 export const metadata = {
   title: "Material",
 };
 
-function statusVariant(
-  status: ProcessingStatus,
-): "default" | "brand" | "success" | "warning" | "muted" {
-  switch (status) {
-    case "uploaded":
-      return "brand";
-    case "extracting":
-      return "warning";
-    case "extracted":
-      return "success";
-    case "failed":
-      return "default";
-    default:
-      return "muted";
+function buildStudyStatus(
+  outputs: (StudyOutput | null)[],
+): MaterialStudyStatus {
+  let readyOutputs = 0;
+  let isGenerating = false;
+  for (const output of outputs) {
+    if (output?.status === "ready") readyOutputs += 1;
+    if (output?.status === "generating" || output?.status === "pending") {
+      isGenerating = true;
+    }
   }
+  return { readyOutputs, isGenerating };
 }
 
 export default async function MaterialDetailPage({
@@ -86,6 +82,12 @@ export default async function MaterialDetailPage({
     material.processing_status === "extracted" &&
     Boolean(material.extracted_text?.trim());
 
+  const studyStatus = buildStudyStatus([
+    summaryOutput,
+    flashcardsOutput,
+    quizOutput,
+  ]);
+
   return (
     <>
       <MaterialProcessingRunner
@@ -100,31 +102,20 @@ export default async function MaterialDetailPage({
       <DashboardHeader
         title="Material details"
         description={`${formatMaterialType(material.material_type)} · ${mimeTypeLabel(material.mime_type)} · ${formatFileSize(material.file_size_bytes)}`}
-        action={
-          <div className="flex items-center gap-2">
-            {showRetry && (
-              <RetryExtractionButton
-                materialId={material.id}
-                label={
-                  material.processing_status === "uploaded"
-                    ? "Start processing"
-                    : "Retry processing"
-                }
-              />
-            )}
-            <Badge variant={statusVariant(material.processing_status)}>
-              {formatProcessingStatus(material.processing_status)}
-            </Badge>
-          </div>
-        }
       />
 
-      <div className="space-y-4 px-6 pt-2">
-        <MaterialTitleEditor
-          materialId={material.id}
-          initialTitle={material.title}
-        />
-      </div>
+      <MaterialDetailHeader material={material} studyStatus={studyStatus}>
+        {showRetry && (
+          <RetryExtractionButton
+            materialId={material.id}
+            label={
+              material.processing_status === "uploaded"
+                ? "Start processing"
+                : "Retry processing"
+            }
+          />
+        )}
+      </MaterialDetailHeader>
 
       <div className="space-y-4 p-6 pt-2">
         <Link

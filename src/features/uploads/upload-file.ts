@@ -22,6 +22,8 @@ export type UploadFileResult =
 export async function uploadMaterialFile(params: {
   file: File;
   category: UploadCategory;
+  title?: string;
+  folderId?: string | null;
   onProgress: (percent: number) => void;
 }): Promise<UploadFileResult> {
   const { url, anonKey } = getSupabaseEnv();
@@ -76,7 +78,8 @@ export async function uploadMaterialFile(params: {
   const row: Material = {
     id: materialId,
     user_id: session.user.id,
-    title: materialTitle(params.file.name),
+    folder_id: params.folderId ?? null,
+    title: params.title?.trim() || materialTitle(params.file.name),
     material_type: categoryToMaterialType(params.category, mimeType),
     mime_type: mimeType,
     file_size_bytes: params.file.size,

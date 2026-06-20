@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Camera,
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   ACCEPTED_UPLOAD_TYPES,
   MAX_UPLOAD_SIZE_BYTES,
@@ -26,8 +27,10 @@ import type { UploadCategory } from "@/features/uploads/utils";
 import {
   inferCategoryFromFile,
   isAllowedMimeType,
+  materialTitle,
   resolveMimeType,
 } from "@/features/uploads/utils";
+import type { MaterialFolder } from "@/types/database";
 
 export type { UploadCategory };
 
@@ -41,10 +44,15 @@ export interface QueuedFile {
   id: string;
   file: File;
   category: UploadCategory;
+  displayTitle: string;
+  folderId: string | null;
+  newFolderName: string;
   status: UploadStatus;
   progress: number;
   error?: string;
 }
+
+const NEW_FOLDER_VALUE = "__new__";
 
 const CATEGORIES: {
   id: UploadCategory;
@@ -86,6 +94,8 @@ function isAcceptedFile(file: File): boolean {
 export function UploadDropzone() {
   const router = useRouter();
   const [category, setCategory] = useState<UploadCategory>("textbook");
+  const [folders, setFolders] = useState<MaterialFolder[]>([]);
+  const [defaultFolderId, setDefaultFolderId] = useState<string | null>(null);
   const [queue, setQueue] = useState<QueuedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -103,6 +113,42 @@ export function UploadDropzone() {
     },
     [],
   );
+
+  useEffect(() => {
+    void fetch("/api/folders", { credentials: "include" })
+      .then((res) => res.json())
+      .then((body: { folders?: MaterialFolder[] }) => {
+        setFolders(body.folders ?? []);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  async function resolveFolderForItem(item: QueuedFile): Promise<string | null> {
+    if (item.folderId === NEW_FOLDER_VALUE) {
+      const name = item.newFolderName.trim();
+      if (!name) {
+        throw new Error("Enter a name for the new folder.");
+      }
+      const res = await fetch("/api/folders", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const body = (await res.json()) as {
+        error?: string;
+        folder?: MaterialFolder;
+      };
+      if (!res.ok || !body.folder) {
+        throw new Error(body.error ?? "Could not create folder.");
+      }
+      setFolders((prev) =>
+        [...prev, body.folder!].sort((a, b) => a.name.localeCompare(b.name)),
+      );
+      return body.folder.id;
+    }
+    return item.folderId;
+  }
 
   const addFiles = useCallback(
     (files: FileList | File[]) => {
@@ -125,6 +171,9 @@ export function UploadDropzone() {
           id: crypto.randomUUID(),
           file,
           category: inferCategoryFromFile(file),
+          displayTitle: materialTitle(file.name),
+          folderId: defaultFolderId,
+          newFolderName: "",
           status: "queued",
           progress: 0,
         });
@@ -134,7 +183,7 @@ export function UploadDropzone() {
         setQueue((prev) => [...prev, ...next]);
       }
     },
-    [],
+    [defaultFolderId],
   );
 
   const onFileInput = useCallback(
@@ -177,9 +226,35 @@ export function UploadDropzone() {
     for (const item of pending) {
       updateItem(item.id, { status: "uploading", progress: 0, error: undefined });
 
+      let folderId: string | null = null;
+      try {
+        folderId = await resolveFolderForItem(item);
+      } catch (err) {
+        failCount += 1;
+        updateItem(item.id, {
+          status: "error",
+          error: err instanceof Error ? err.message : "Folder error.",
+          progress: 0,
+        });
+        continue;
+      }
+
+      const title = item.displayTitle.trim() || materialTitle(item.file.name);
+      if (!title) {
+        failCount += 1;
+        updateItem(item.id, {
+          status: "error",
+          error: "Enter a display name for this file.",
+          progress: 0,
+        });
+        continue;
+      }
+
       const result = await uploadMaterialFile({
         file: item.file,
         category: item.category,
+        title,
+        folderId,
         onProgress: (percent) => updateItem(item.id, { progress: percent }),
       });
 
@@ -355,18 +430,107 @@ export function UploadDropzone() {
               Clear all
             </Button>
           </div>
+          {hasPending && (
+            <div className="rounded-xl border border-border bg-slate-50 px-4 py-3">
+              <label className="text-xs font-medium text-muted">
+                Default folder for new files
+              </label>
+              <select
+                className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                value={defaultFolderId ?? ""}
+                disabled={isUploading}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setDefaultFolderId(value || null);
+                }}
+              >
+                <option value="">Unsorted</option>
+                {folders.map((folder) => (
+                  <option key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <ul className="divide-y divide-border rounded-xl border border-border bg-white">
             {queue.map((item) => (
               <li key={item.id} className="px-4 py-3">
-                <div className="flex items-center gap-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {item.file.name}
-                    </p>
-                    <p className="text-xs text-muted">
-                      {formatFileSize(item.file.size)} ·{" "}
-                      {CATEGORIES.find((c) => c.id === item.category)?.label}
-                    </p>
+                <div className="flex items-start gap-4">
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <div>
+                      <p className="truncate text-xs text-muted">
+                        {item.file.name} · {formatFileSize(item.file.size)} ·{" "}
+                        {CATEGORIES.find((c) => c.id === item.category)?.label}
+                      </p>
+                    </div>
+                    {item.status === "queued" && !isUploading && (
+                      <>
+                        <div>
+                          <label className="text-xs font-medium text-muted">
+                            Display name
+                          </label>
+                          <Input
+                            value={item.displayTitle}
+                            onChange={(e) =>
+                              updateItem(item.id, {
+                                displayTitle: e.target.value,
+                              })
+                            }
+                            className="mt-1 h-9 text-sm"
+                            placeholder="Name shown in your library"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-muted">
+                            Save to folder
+                          </label>
+                          <select
+                            className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                            value={item.folderId ?? ""}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              updateItem(item.id, {
+                                folderId: value || null,
+                                newFolderName:
+                                  value === NEW_FOLDER_VALUE
+                                    ? item.newFolderName
+                                    : "",
+                              });
+                            }}
+                          >
+                            <option value="">Unsorted</option>
+                            {folders.map((folder) => (
+                              <option key={folder.id} value={folder.id}>
+                                {folder.name}
+                              </option>
+                            ))}
+                            <option value={NEW_FOLDER_VALUE}>
+                              + Create new folder
+                            </option>
+                          </select>
+                          {item.folderId === NEW_FOLDER_VALUE && (
+                            <Input
+                              value={item.newFolderName}
+                              onChange={(e) =>
+                                updateItem(item.id, {
+                                  newFolderName: e.target.value,
+                                })
+                              }
+                              className="mt-2 h-9 text-sm"
+                              placeholder="New folder name"
+                            />
+                          )}
+                        </div>
+                      </>
+                    )}
+                    {(item.status === "uploading" ||
+                      item.status === "success" ||
+                      item.status === "error") && (
+                      <p className="text-sm font-medium text-foreground">
+                        {item.displayTitle}
+                      </p>
+                    )}
                   </div>
                   {item.status === "uploading" && (
                     <Loader2 className="h-4 w-4 shrink-0 animate-spin text-brand-600" />

@@ -24,6 +24,7 @@ export interface Profile {
 export interface Material {
   id: string;
   user_id: string;
+  folder_id: string | null;
   title: string;
   material_type: MaterialType;
   mime_type: string;
@@ -47,6 +48,14 @@ export interface StudyOutput {
   title: string | null;
   content: Record<string, unknown> | null;
   error_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MaterialFolder {
+  id: string;
+  user_id: string;
+  name: string;
   created_at: string;
   updated_at: string;
 }
@@ -87,6 +96,15 @@ export interface Database {
           updated_at?: string;
         },
         Partial<Omit<Material, "id" | "user_id">>
+      >;
+      material_folders: TableDef<
+        MaterialFolder,
+        Omit<MaterialFolder, "id" | "created_at" | "updated_at"> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        },
+        Partial<Omit<MaterialFolder, "id" | "user_id">>
       >;
       study_outputs: TableDef<
         StudyOutput,

@@ -7,8 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FREE_UPLOAD_LIMIT } from "@/lib/constants";
 import {
   getMaterialCountByUserId,
+  getMaterialFoldersByUserId,
   getMaterialsByUserId,
   getProfileByUserId,
+  getMaterialStudyStatusMap,
   getStudyOutputBreakdownByUserId,
 } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -25,12 +27,14 @@ export default async function DashboardPage() {
 
   if (!user) return null;
 
-  const [profile, materials, materialCount, outputBreakdown] =
+  const [profile, materials, folders, materialCount, outputBreakdown, studyStatusByMaterialId] =
     await Promise.all([
       getProfileByUserId(user.id),
       getMaterialsByUserId(user.id),
+      getMaterialFoldersByUserId(user.id),
       getMaterialCountByUserId(user.id),
       getStudyOutputBreakdownByUserId(user.id),
+      getMaterialStudyStatusMap(user.id),
     ]);
 
   const extractedCount = materials.filter(
@@ -102,7 +106,11 @@ export default async function DashboardPage() {
           </Card>
         </div>
 
-        <MaterialsList materials={materials} />
+        <MaterialsList
+          materials={materials}
+          folders={folders}
+          studyStatusByMaterialId={studyStatusByMaterialId}
+        />
 
         {materialCount > 0 && outputBreakdown.total === 0 && extractedCount > 0 && (
           <Card className="border-brand-200 bg-brand-50/50">

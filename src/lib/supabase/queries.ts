@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Material, OutputType, Profile, StudyOutput } from "@/types/database";
+import type { Material, MaterialFolder, OutputType, Profile, StudyOutput } from "@/types/database";
 
 export async function getProfileByUserId(
   userId: string,
@@ -32,7 +32,7 @@ export async function getMaterialsByUserId(
   const { data, error } = await supabase
     .from("materials")
     .select(
-      "id, title, material_type, mime_type, file_size_bytes, processing_status, created_at, storage_path, error_message",
+      "id, title, folder_id, material_type, mime_type, file_size_bytes, processing_status, created_at, storage_path, error_message",
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
@@ -77,6 +77,54 @@ export async function getStudyOutputForMaterial(
 
   if (error || !data) return null;
   return data as StudyOutput;
+}
+
+export async function getMaterialFoldersByUserId(
+  userId: string,
+): Promise<MaterialFolder[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("material_folders")
+    .select("*")
+    .eq("user_id", userId)
+    .order("name", { ascending: true });
+
+  if (error || !data) return [];
+  return data as MaterialFolder[];
+}
+
+export type MaterialStudyStatusMap = Record<
+  string,
+  { readyOutputs: number; isGenerating: boolean }
+>;
+
+export async function getMaterialStudyStatusMap(
+  userId: string,
+): Promise<MaterialStudyStatusMap> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("study_outputs")
+    .select("material_id, status")
+    .eq("user_id", userId);
+
+  if (error || !data) return {};
+
+  const map: MaterialStudyStatusMap = {};
+  for (const row of data as { material_id: string; status: string }[]) {
+    const current = map[row.material_id] ?? {
+      readyOutputs: 0,
+      isGenerating: false,
+    };
+    if (row.status === "ready") {
+      current.readyOutputs += 1;
+    }
+    if (row.status === "generating" || row.status === "pending") {
+      current.isGenerating = true;
+    }
+    map[row.material_id] = current;
+  }
+
+  return map;
 }
 
 export async function getMaterialCountByUserId(

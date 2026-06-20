@@ -5,13 +5,16 @@ import { useState } from "react";
 import { Check, Loader2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 export function MaterialTitleEditor({
   materialId,
   initialTitle,
+  variant = "heading",
 }: {
   materialId: string;
   initialTitle: string;
+  variant?: "heading" | "inline";
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -51,16 +54,26 @@ export function MaterialTitleEditor({
 
   if (editing) {
     return (
-      <div className="flex flex-wrap items-center gap-2">
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-2",
+          variant === "inline" && "w-full",
+        )}
+        onClick={(e) => e.preventDefault()}
+      >
         <Input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          className="max-w-md"
+          className={variant === "inline" ? "h-8 text-sm" : "max-w-md"}
           disabled={pending}
           aria-label="Material title"
         />
         <Button size="sm" disabled={pending} onClick={save}>
-          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+          {pending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Check className="h-4 w-4" />
+          )}
           Save
         </Button>
         <Button
@@ -76,6 +89,25 @@ export function MaterialTitleEditor({
           Cancel
         </Button>
         {error && <p className="w-full text-xs text-red-600">{error}</p>}
+      </div>
+    );
+  }
+
+  if (variant === "inline") {
+    return (
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className="truncate font-medium text-foreground">{title}</span>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            setEditing(true);
+          }}
+          className="shrink-0 rounded-lg p-1 text-muted hover:bg-slate-100 hover:text-foreground"
+          aria-label="Rename material"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
       </div>
     );
   }
