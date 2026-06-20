@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { ChevronDown, ChevronRight, FolderOpen } from "lucide-react";
 import { MaterialListRow } from "@/components/materials/material-list-row";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { groupMaterialsByFolder } from "@/lib/materials/folders";
 import type { MaterialStudyStatusMap } from "@/lib/supabase/queries";
 import type { Material, MaterialFolder } from "@/types/database";
-import { cn } from "@/lib/utils";
 
 function MaterialFolderSection({
   name,
@@ -23,32 +22,50 @@ function MaterialFolderSection({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const listId = useId();
+  const toggle = () => setOpen((prev) => !prev);
+  const headerClassName =
+    "flex w-full items-center gap-2 border-b border-border/60 bg-slate-50/80 px-6 py-3 text-left transition-colors hover:bg-slate-100/80";
+  const countLabel = `${count} file${count !== 1 ? "s" : ""}`;
+
+  const headerContent = (
+    <>
+      <FolderOpen className="h-4 w-4 shrink-0 text-brand-600" />
+      <h3 className="text-sm font-semibold text-foreground">{name}</h3>
+      <span className="text-xs text-muted">{countLabel}</span>
+    </>
+  );
 
   return (
     <section>
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center gap-2 border-b border-border/60 bg-slate-50/80 px-6 py-3 text-left transition-colors hover:bg-slate-100/80"
-        aria-expanded={open}
-      >
-        {open ? (
+      {open ? (
+        <button
+          type="button"
+          onClick={toggle}
+          className={headerClassName}
+          aria-expanded="true"
+          aria-controls={listId}
+        >
           <ChevronDown className="h-4 w-4 shrink-0 text-muted" />
-        ) : (
+          {headerContent}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={toggle}
+          className={headerClassName}
+          aria-expanded="false"
+          aria-controls={listId}
+        >
           <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
-        )}
-        <FolderOpen className="h-4 w-4 shrink-0 text-brand-600" />
-        <h3 className="text-sm font-semibold text-foreground">{name}</h3>
-        <span className="text-xs text-muted">
-          {count} file{count !== 1 ? "s" : ""}
-        </span>
-      </button>
-      <ul
-        className={cn("divide-y divide-border", !open && "hidden")}
-        aria-hidden={!open}
-      >
-        {children}
-      </ul>
+          {headerContent}
+        </button>
+      )}
+      {open ? (
+        <ul id={listId} className="divide-y divide-border">
+          {children}
+        </ul>
+      ) : null}
     </section>
   );
 }

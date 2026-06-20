@@ -175,7 +175,12 @@ export function MaterialEditDialog({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-foreground">Folder</label>
+            <label
+              htmlFor="material-edit-folder"
+              className="text-sm font-medium text-foreground"
+            >
+              Folder
+            </label>
             {loadingFolders ? (
               <div className="mt-1.5 flex items-center gap-2 text-sm text-muted">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -184,9 +189,11 @@ export function MaterialEditDialog({
             ) : (
               <>
                 <select
+                  id="material-edit-folder"
                   className="mt-1.5 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
                   value={selectValue}
                   disabled={pending}
+                  aria-label="Folder"
                   onChange={(e) => {
                     setSelectValue(e.target.value);
                     setError(null);

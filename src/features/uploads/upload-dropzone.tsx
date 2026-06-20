@@ -432,25 +432,29 @@ export function UploadDropzone() {
           </div>
           {hasPending && (
             <div className="rounded-xl border border-border bg-slate-50 px-4 py-3">
-              <label className="text-xs font-medium text-muted">
-                Default folder for new files
+              <label className="block">
+                <span className="text-xs font-medium text-muted">
+                  Default folder for new files
+                </span>
+                <select
+                  className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                  value={defaultFolderId ?? ""}
+                  disabled={isUploading}
+                  title="Default folder for new files"
+                  aria-label="Default folder for new files"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setDefaultFolderId(value || null);
+                  }}
+                >
+                  <option value="">Unsorted</option>
+                  {folders.map((folder) => (
+                    <option key={folder.id} value={folder.id}>
+                      {folder.name}
+                    </option>
+                  ))}
+                </select>
               </label>
-              <select
-                className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
-                value={defaultFolderId ?? ""}
-                disabled={isUploading}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setDefaultFolderId(value || null);
-                }}
-              >
-                <option value="">Unsorted</option>
-                {folders.map((folder) => (
-                  <option key={folder.id} value={folder.id}>
-                    {folder.name}
-                  </option>
-                ))}
-              </select>
             </div>
           )}
           <ul className="divide-y divide-border rounded-xl border border-border bg-white">
@@ -467,10 +471,14 @@ export function UploadDropzone() {
                     {item.status === "queued" && !isUploading && (
                       <>
                         <div>
-                          <label className="text-xs font-medium text-muted">
+                          <label
+                            htmlFor={`upload-display-name-${item.id}`}
+                            className="text-xs font-medium text-muted"
+                          >
                             Display name
                           </label>
                           <Input
+                            id={`upload-display-name-${item.id}`}
                             value={item.displayTitle}
                             onChange={(e) =>
                               updateItem(item.id, {
@@ -479,26 +487,30 @@ export function UploadDropzone() {
                             }
                             className="mt-1 h-9 text-sm"
                             placeholder="Name shown in your library"
+                            aria-label="Display name"
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-muted">
-                            Save to folder
-                          </label>
-                          <select
-                            className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
-                            value={item.folderId ?? ""}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              updateItem(item.id, {
-                                folderId: value || null,
-                                newFolderName:
-                                  value === NEW_FOLDER_VALUE
-                                    ? item.newFolderName
-                                    : "",
-                              });
-                            }}
-                          >
+                          <label className="block">
+                            <span className="text-xs font-medium text-muted">
+                              Save to folder
+                            </span>
+                            <select
+                              className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                              value={item.folderId ?? ""}
+                              title="Save to folder"
+                              aria-label="Save to folder"
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                updateItem(item.id, {
+                                  folderId: value || null,
+                                  newFolderName:
+                                    value === NEW_FOLDER_VALUE
+                                      ? item.newFolderName
+                                      : "",
+                                });
+                              }}
+                            >
                             <option value="">Unsorted</option>
                             {folders.map((folder) => (
                               <option key={folder.id} value={folder.id}>
@@ -509,6 +521,7 @@ export function UploadDropzone() {
                               + Create new folder
                             </option>
                           </select>
+                          </label>
                           {item.folderId === NEW_FOLDER_VALUE && (
                             <Input
                               value={item.newFolderName}
