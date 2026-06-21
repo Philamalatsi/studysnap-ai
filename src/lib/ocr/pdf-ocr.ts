@@ -1,4 +1,4 @@
-import { PDFParse } from "pdf-parse";
+import "@/lib/ocr/ensure-node-ocr-env";
 
 export type PdfExtractionResult = {
   text: string;
@@ -8,6 +8,7 @@ export type PdfExtractionResult = {
 export async function extractTextFromPdf(
   buffer: Buffer,
 ): Promise<PdfExtractionResult> {
+  const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data: buffer });
   try {
     const result = await parser.getText();

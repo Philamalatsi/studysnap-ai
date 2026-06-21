@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     "tesseract.js",
     "pdf-parse",
     "pdfjs-dist",
+    "@napi-rs/canvas",
     "@thednp/dommatrix",
     "sharp",
     "heic-convert",

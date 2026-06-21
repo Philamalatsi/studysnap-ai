@@ -1,3 +1,4 @@
+import "@/lib/ocr/ensure-node-ocr-env";
 import { NextResponse } from "next/server";
 import { processMaterialExtraction } from "@/features/materials/extraction-service";
 import { runStudyPackGeneration } from "@/features/study-pack/study-pack-service";
