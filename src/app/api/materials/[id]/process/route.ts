@@ -46,6 +46,12 @@ export async function POST(
     if (!result.ok) {
       const isNotFound = result.error === "Material not found.";
       const isBusy = result.error === "Extraction already in progress.";
+      if (isBusy) {
+        return NextResponse.json(
+          { ok: true, inProgress: true, message: result.error },
+          { status: 202 },
+        );
+      }
       console.warn("[materials/process] extraction failed", {
         materialId: id,
         userId: user.id,
@@ -53,7 +59,7 @@ export async function POST(
       });
       return NextResponse.json(
         { error: result.error, ok: false },
-        { status: isNotFound ? 404 : isBusy ? 409 : 422 },
+        { status: isNotFound ? 404 : 422 },
       );
     }
 

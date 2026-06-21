@@ -18,6 +18,7 @@ import {
   isMaterialReadyToUse,
   type MaterialStudyStatus,
 } from "@/lib/materials/study-status";
+import { isStaleExtraction } from "@/lib/materials/processing";
 import { formatFileSize } from "@/lib/utils";
 import type { Material } from "@/types/database";
 
@@ -45,9 +46,13 @@ export function MaterialListRow({
   studyStatus?: MaterialStudyStatus;
 }) {
   const [editOpen, setEditOpen] = useState(false);
+  const extractionStale =
+    material.processing_status === "extracting" &&
+    isStaleExtraction(material.processing_status, material.updated_at);
   const needsExtraction =
     material.processing_status === "uploaded" ||
-    material.processing_status === "failed";
+    material.processing_status === "failed" ||
+    extractionStale;
 
   return (
     <>

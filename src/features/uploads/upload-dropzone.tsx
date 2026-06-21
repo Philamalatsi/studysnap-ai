@@ -176,6 +176,7 @@ export function UploadDropzone() {
     let successCount = 0;
     let failCount = 0;
     let lastMaterialId: string | null = null;
+    const willRedirectToSingle = pending.length === 1;
 
     for (const item of pending) {
       updateItem(item.id, { status: "uploading", progress: 0, error: undefined });
@@ -215,7 +216,9 @@ export function UploadDropzone() {
         successCount += 1;
         lastMaterialId = result.materialId;
         updateItem(item.id, { status: "success", progress: 100 });
-        triggerMaterialExtraction(result.materialId);
+        if (!willRedirectToSingle) {
+          triggerMaterialExtraction(result.materialId);
+        }
       } else {
         failCount += 1;
         updateItem(item.id, {
