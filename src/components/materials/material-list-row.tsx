@@ -8,8 +8,8 @@ import { MaterialDeleteButton } from "@/components/materials/material-delete-but
 import { MaterialEditDialog } from "@/components/materials/material-edit-dialog";
 import { MaterialThumbnail } from "@/components/materials/material-thumbnail";
 import { RetryExtractionButton } from "@/components/materials/retry-extraction-button";
+import { FormattedDate } from "@/components/ui/formatted-date";
 import {
-  formatMaterialDate,
   formatMaterialType,
   mimeTypeLabel,
 } from "@/lib/materials/display";
@@ -72,7 +72,7 @@ export function MaterialListRow({
             {formatMaterialType(material.material_type)} ·{" "}
             {mimeTypeLabel(material.mime_type)} ·{" "}
             {formatFileSize(material.file_size_bytes)} ·{" "}
-            {formatMaterialDate(material.created_at)}
+            <FormattedDate iso={material.created_at} />
           </Link>
           {material.processing_status === "failed" && material.error_message && (
             <p className="mt-1 truncate text-xs text-red-600">

@@ -6,9 +6,9 @@ import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { MaterialDetailTabs } from "@/components/materials/material-detail-tabs";
 import { MaterialProcessingRunner } from "@/components/materials/material-processing-runner";
 import { RetryExtractionButton } from "@/components/materials/retry-extraction-button";
+import { FormattedDate } from "@/components/ui/formatted-date";
 import { isOpenAIConfigured } from "@/lib/ai/openai";
 import {
-  formatMaterialDate,
   formatMaterialType,
   mimeTypeLabel,
 } from "@/lib/materials/display";
@@ -137,7 +137,7 @@ export default async function MaterialDetailPage({
         </Link>
 
         <p className="text-sm text-muted">
-          Uploaded {formatMaterialDate(material.created_at)}
+          Uploaded <FormattedDate iso={material.created_at} />
           {material.page_count != null && material.page_count > 0 && (
             <> · {material.page_count} page{material.page_count !== 1 ? "s" : ""}</>
           )}

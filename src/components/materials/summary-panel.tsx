@@ -11,6 +11,7 @@ import { parseSummaryProgress } from "@/features/study-progress/types";
 import { useStudyProgress } from "@/features/study-progress/use-study-progress";
 import { GenerateSummaryButton } from "@/components/materials/generate-summary-button";
 import { StudyOutputEmptyState } from "@/components/materials/study-output-empty-state";
+import { FormattedDate } from "@/components/ui/formatted-date";
 import type { Material, StudyOutput } from "@/types/database";
 
 function outputStatusVariant(
@@ -177,7 +178,7 @@ export function SummaryPanel({
             </div>
             <p className="mt-3 text-xs text-muted">
               Model: {parsed.model} · Generated{" "}
-              {new Date(parsed.generated_at).toLocaleString()}
+              <FormattedDate iso={parsed.generated_at} />
             </p>
           </article>
         )}
