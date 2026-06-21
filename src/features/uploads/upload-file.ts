@@ -1,10 +1,9 @@
 import { createClient } from "@/lib/supabase/client";
 import { getSupabaseEnv } from "@/lib/supabase/env";
-import type { UploadCategory } from "@/features/uploads/utils";
 import type { Material } from "@/types/database";
 import {
   buildStoragePath,
-  categoryToMaterialType,
+  inferMaterialTypeFromFile,
   materialTitle,
   isAllowedMimeType,
   resolveMimeType,
@@ -21,7 +20,6 @@ export type UploadFileResult =
 
 export async function uploadMaterialFile(params: {
   file: File;
-  category: UploadCategory;
   title?: string;
   folderId?: string | null;
   onProgress: (percent: number) => void;
@@ -80,7 +78,7 @@ export async function uploadMaterialFile(params: {
     user_id: session.user.id,
     folder_id: params.folderId ?? null,
     title: params.title?.trim() || materialTitle(params.file.name),
-    material_type: categoryToMaterialType(params.category, mimeType),
+    material_type: inferMaterialTypeFromFile(params.file),
     mime_type: mimeType,
     file_size_bytes: params.file.size,
     storage_bucket: UPLOADS_BUCKET,

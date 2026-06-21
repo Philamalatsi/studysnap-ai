@@ -3,12 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Camera,
   CheckCircle2,
-  FileText,
-  ImageIcon,
   Loader2,
-  PenLine,
   Upload,
   X,
   XCircle,
@@ -21,18 +17,15 @@ import {
   MAX_UPLOAD_SIZE_BYTES,
 } from "@/lib/constants";
 import { cn, formatFileSize } from "@/lib/utils";
+import { mimeTypeLabel } from "@/lib/materials/display";
 import { triggerMaterialExtraction } from "@/features/materials/trigger-extraction";
 import { uploadMaterialFile } from "@/features/uploads/upload-file";
-import type { UploadCategory } from "@/features/uploads/utils";
 import {
-  inferCategoryFromFile,
   isAllowedMimeType,
   materialTitle,
   resolveMimeType,
 } from "@/features/uploads/utils";
 import type { MaterialFolder } from "@/types/database";
-
-export type { UploadCategory };
 
 type UploadStatus =
   | "queued"
@@ -43,7 +36,6 @@ type UploadStatus =
 export interface QueuedFile {
   id: string;
   file: File;
-  category: UploadCategory;
   displayTitle: string;
   folderId: string | null;
   newFolderName: string;
@@ -54,38 +46,6 @@ export interface QueuedFile {
 
 const NEW_FOLDER_VALUE = "__new__";
 
-const CATEGORIES: {
-  id: UploadCategory;
-  label: string;
-  description: string;
-  icon: typeof ImageIcon;
-}[] = [
-  {
-    id: "textbook",
-    label: "Textbook photo",
-    description: "Pages from textbooks or workbooks",
-    icon: Camera,
-  },
-  {
-    id: "handwritten",
-    label: "Handwritten notes",
-    description: "Notebook pages and lecture notes",
-    icon: PenLine,
-  },
-  {
-    id: "screenshot",
-    label: "Screenshot",
-    description: "Slides, apps, or online resources",
-    icon: ImageIcon,
-  },
-  {
-    id: "pdf",
-    label: "PDF document",
-    description: "Digital readings and assignments",
-    icon: FileText,
-  },
-];
-
 function isAcceptedFile(file: File): boolean {
   const mime = resolveMimeType(file);
   return Boolean(mime && isAllowedMimeType(mime));
@@ -93,7 +53,6 @@ function isAcceptedFile(file: File): boolean {
 
 export function UploadDropzone() {
   const router = useRouter();
-  const [category, setCategory] = useState<UploadCategory>("textbook");
   const [folders, setFolders] = useState<MaterialFolder[]>([]);
   const [defaultFolderId, setDefaultFolderId] = useState<string | null>(null);
   const [queue, setQueue] = useState<QueuedFile[]>([]);
@@ -170,7 +129,6 @@ export function UploadDropzone() {
         next.push({
           id: crypto.randomUUID(),
           file,
-          category: inferCategoryFromFile(file),
           displayTitle: materialTitle(file.name),
           folderId: defaultFolderId,
           newFolderName: "",
@@ -188,10 +146,6 @@ export function UploadDropzone() {
 
   const onFileInput = useCallback(
     (files: FileList | File[]) => {
-      const fileArr = Array.from(files);
-      if (fileArr.length === 1) {
-        setCategory(inferCategoryFromFile(fileArr[0]!));
-      }
       addFiles(files);
     },
     [addFiles],
@@ -252,7 +206,6 @@ export function UploadDropzone() {
 
       const result = await uploadMaterialFile({
         file: item.file,
-        category: item.category,
         title,
         folderId,
         onProgress: (percent) => updateItem(item.id, { progress: percent }),
@@ -307,43 +260,10 @@ export function UploadDropzone() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-sm font-medium text-foreground">
-          What are you uploading?
-        </h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {CATEGORIES.map((cat) => {
-            const Icon = cat.icon;
-            const selected = category === cat.id;
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                disabled={isUploading}
-                onClick={() => setCategory(cat.id)}
-                className={cn(
-                  "flex flex-col items-start rounded-xl border p-4 text-left transition-all",
-                  selected
-                    ? "border-brand-500 bg-brand-50 ring-1 ring-brand-500"
-                    : "border-border bg-white hover:border-brand-200",
-                  isUploading && "cursor-not-allowed opacity-60",
-                )}
-              >
-                <Icon
-                  className={cn(
-                    "h-5 w-5",
-                    selected ? "text-brand-600" : "text-muted",
-                  )}
-                />
-                <span className="mt-2 text-sm font-medium">{cat.label}</span>
-                <span className="mt-0.5 text-xs text-muted">
-                  {cat.description}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <p className="text-sm text-muted">
+        Upload textbook photos, handwritten notes, screenshots, or PDFs. We
+        accept JPG, PNG, WebP, HEIC, and PDF files up to 50 MB each.
+      </p>
 
       <Card>
         <CardContent className="p-0">
@@ -465,7 +385,7 @@ export function UploadDropzone() {
                     <div>
                       <p className="truncate text-xs text-muted">
                         {item.file.name} · {formatFileSize(item.file.size)} ·{" "}
-                        {CATEGORIES.find((c) => c.id === item.category)?.label}
+                        {mimeTypeLabel(resolveMimeType(item.file))}
                       </p>
                     </div>
                     {item.status === "queued" && !isUploading && (
