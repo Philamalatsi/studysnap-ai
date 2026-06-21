@@ -13,38 +13,54 @@ export async function POST(
 ) {
   const { id } = await context.params;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const result = await processMaterialExtraction(id, user.id, supabase);
+
+    if (!result.ok) {
+      const isNotFound = result.error === "Material not found.";
+      const isBusy = result.error === "Extraction already in progress.";
+      console.warn("[materials/process] extraction failed", {
+        materialId: id,
+        userId: user.id,
+        error: result.error,
+      });
+      return NextResponse.json(
+        { error: result.error, ok: false },
+        { status: isNotFound ? 404 : isBusy ? 409 : 422 },
+      );
+    }
+
+    let studyPack: Awaited<ReturnType<typeof runStudyPackGeneration>> | null =
+      null;
+
+    if (isOpenAIConfigured()) {
+      studyPack = await runStudyPackGeneration(id, user.id, supabase);
+    }
+
+    return NextResponse.json({
+      ok: true,
+      pageCount: result.pageCount,
+      textLength: result.text.length,
+      studyPack,
+      aiConfigured: isOpenAIConfigured(),
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Processing failed unexpectedly.";
+    console.error("[materials/process] unhandled error", {
+      materialId: id,
+      message,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return NextResponse.json({ error: message, ok: false }, { status: 500 });
   }
-
-  const result = await processMaterialExtraction(id, user.id, supabase);
-
-  if (!result.ok) {
-    const isNotFound = result.error === "Material not found.";
-    const isBusy = result.error === "Extraction already in progress.";
-    return NextResponse.json(
-      { error: result.error, ok: false },
-      { status: isNotFound ? 404 : isBusy ? 409 : 422 },
-    );
-  }
-
-  let studyPack: Awaited<ReturnType<typeof runStudyPackGeneration>> | null =
-    null;
-
-  if (isOpenAIConfigured()) {
-    studyPack = await runStudyPackGeneration(id, user.id, supabase);
-  }
-
-  return NextResponse.json({
-    ok: true,
-    pageCount: result.pageCount,
-    textLength: result.text.length,
-    studyPack,
-    aiConfigured: isOpenAIConfigured(),
-  });
 }

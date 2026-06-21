@@ -24,14 +24,24 @@ export function RetryExtractionButton({
         method: "POST",
         credentials: "include",
       });
-      const body = (await res.json()) as { error?: string };
+      let body: { error?: string } = {};
+      try {
+        body = (await res.json()) as { error?: string };
+      } catch {
+        body = {};
+      }
       if (!res.ok) {
-        setError(body.error ?? "Processing failed.");
+        setError(
+          body.error ??
+            (res.status === 500
+              ? "Server error during processing. Check Vercel logs for details."
+              : "Processing failed."),
+        );
       } else {
         router.refresh();
       }
     } catch {
-      setError("Could not start processing.");
+      setError("Could not reach the processing service.");
     } finally {
       setPending(false);
     }

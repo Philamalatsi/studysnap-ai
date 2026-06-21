@@ -13,6 +13,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.8",
+    "@thednp/dommatrix": "^3.0.4",
     "clsx": "^2.1.1",
     "heic-convert": "^2.1.0",
     "lucide-react": "^0.511.0",

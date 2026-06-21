@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
   serverExternalPackages: [
     "tesseract.js",
     "pdf-parse",
+    "pdfjs-dist",
+    "@thednp/dommatrix",
     "sharp",
     "heic-convert",
     "openai",

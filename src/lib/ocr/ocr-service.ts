@@ -1,5 +1,6 @@
 import "server-only";
 
+import { ensureNodeOcrEnv } from "@/lib/ocr/ensure-node-ocr-env";
 import { extractTextFromImage } from "@/lib/ocr/image-ocr";
 import { isImageMime, isPdfMime, isSupportedForOcr } from "@/lib/ocr/mime";
 import { extractTextFromPdf } from "@/lib/ocr/pdf-ocr";
@@ -13,6 +14,8 @@ export async function runOcr(
   buffer: Buffer,
   mimeType: string,
 ): Promise<OcrResult> {
+  ensureNodeOcrEnv();
+
   if (!isSupportedForOcr(mimeType)) {
     throw new Error(`Unsupported file type for OCR: ${mimeType}`);
   }
