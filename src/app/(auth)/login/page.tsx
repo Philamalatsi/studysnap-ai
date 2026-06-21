@@ -16,11 +16,20 @@ const AUTH_ERRORS: Record<string, string> = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ redirect?: string; error?: string }>;
+  searchParams: Promise<{
+    redirect?: string;
+    error?: string;
+    reset?: string;
+  }>;
 }) {
-  const { redirect: redirectParam, error: errorCode } = await searchParams;
+  const {
+    redirect: redirectParam,
+    error: errorCode,
+    reset,
+  } = await searchParams;
   const redirect = safeRedirectPath(redirectParam, "/dashboard");
   const authError = errorCode ? AUTH_ERRORS[errorCode] : undefined;
+  const resetSuccess = reset === "success";
 
   return (
     <div className="space-y-6">
@@ -33,6 +42,11 @@ export default async function LoginPage({
       {authError && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {authError}
+        </p>
+      )}
+      {resetSuccess && (
+        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          Password updated. Sign in with your new password.
         </p>
       )}
       <LoginForm redirectTo={redirect} />

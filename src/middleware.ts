@@ -10,6 +10,7 @@ const PUBLIC_ROUTES = [
   "/login",
   "/signup",
   "/forgot-password",
+  "/reset-password",
   "/auth/callback",
 ];
 const AUTH_ROUTES = ["/login", "/signup", "/forgot-password"];
@@ -28,7 +29,37 @@ function isDashboardRoute(pathname: string) {
   return pathname.startsWith("/dashboard");
 }
 
+function redirectAuthCodeToCallback(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const code = request.nextUrl.searchParams.get("code");
+
+  if (!code || pathname === "/auth/callback") {
+    return null;
+  }
+
+  const url = request.nextUrl.clone();
+  url.pathname = "/auth/callback";
+
+  if (
+    request.nextUrl.searchParams.get("type") === "recovery" &&
+    !url.searchParams.has("next")
+  ) {
+    url.searchParams.set("next", "/reset-password");
+  }
+
+  if (pathname === "/" && !url.searchParams.has("next")) {
+    url.searchParams.set("next", "/reset-password");
+  }
+
+  return url;
+}
+
 export async function middleware(request: NextRequest) {
+  const authCodeRedirect = redirectAuthCodeToCallback(request);
+  if (authCodeRedirect) {
+    return NextResponse.redirect(authCodeRedirect);
+  }
+
   const { supabaseResponse, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
 

@@ -102,7 +102,7 @@ export async function resetPassword(
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${getSupabaseEnv().appUrl}/auth/callback?next=/login`,
+    redirectTo: `${getSupabaseEnv().appUrl}/auth/callback?next=/reset-password`,
   });
 
   if (error) {
@@ -112,6 +112,50 @@ export async function resetPassword(
   return {
     success: "Check your email for a password reset link.",
   };
+}
+
+export async function updatePassword(
+  _prevState: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+  if (!password || !confirmPassword) {
+    return { error: "Both password fields are required." };
+  }
+
+  if (password.length < 8) {
+    return { error: "Password must be at least 8 characters." };
+  }
+
+  if (password !== confirmPassword) {
+    return { error: "Passwords do not match." };
+  }
+
+  if (!isSupabaseConfigured()) {
+    return { error: NOT_CONFIGURED };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      error: "Your reset link expired. Request a new one from the login page.",
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/", "layout");
+  redirect("/login?reset=success");
 }
 
 export async function signOut() {

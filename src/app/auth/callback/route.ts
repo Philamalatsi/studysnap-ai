@@ -6,7 +6,12 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = safeRedirectPath(searchParams.get("next"));
+  const type = searchParams.get("type");
+  const nextParam = searchParams.get("next");
+  const next =
+    type === "recovery"
+      ? "/reset-password"
+      : safeRedirectPath(nextParam);
 
   if (!isSupabaseConfigured()) {
     return NextResponse.redirect(`${origin}/login?error=auth_not_configured`);

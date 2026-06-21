@@ -32,6 +32,11 @@ In **Authentication** → **URL Configuration**:
 For production (Vercel), also add:
 
 - `https://your-domain.com/auth/callback`
+- `https://your-domain.com/auth/callback?next=/reset-password`
+
+For local password reset testing, also add:
+
+- `http://localhost:3000/auth/callback?next=/reset-password`
 
 ## 3. Email auth settings (recommended for local dev)
 

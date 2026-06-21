@@ -15,6 +15,10 @@ export const metadata: Metadata = {
   },
   description:
     "Upload textbook photos, handwritten notes, screenshots, and PDFs. Get AI summaries, flashcards, and quizzes in seconds.",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-icon.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({
