@@ -24,7 +24,7 @@ export function RetryExtractionButton({
         method: "POST",
         credentials: "include",
       });
-      let body: { error?: string } = {};
+      let body: { error?: string; inProgress?: boolean } = {};
       try {
         body = (await res.json()) as { error?: string };
       } catch {
@@ -33,10 +33,14 @@ export function RetryExtractionButton({
       if (!res.ok) {
         setError(
           body.error ??
-            (res.status === 500
-              ? "Server error during processing. Check Vercel logs for details."
-              : "Processing failed."),
+            (res.status === 202
+              ? "Extraction is already running. Refresh in a moment."
+              : res.status === 500
+                ? "Server error during processing. Check Vercel logs for details."
+                : "Processing failed."),
         );
+      } else if (body && "inProgress" in body && body.inProgress) {
+        setError("Extraction is already running. Refresh in a moment.");
       } else {
         router.refresh();
       }

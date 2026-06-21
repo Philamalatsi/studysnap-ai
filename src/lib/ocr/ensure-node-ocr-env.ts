@@ -1,12 +1,19 @@
 import "server-only";
 
-import DOMMatrixPolyfill from "@thednp/dommatrix";
+import { DOMMatrix, ImageData, Path2D } from "@napi-rs/canvas";
 
-/** pdfjs (pdf-parse) expects browser canvas APIs on Node when @napi-rs/canvas is unavailable. */
+/** pdfjs (via pdf-parse) expects browser canvas APIs; @napi-rs/canvas provides them on Node. */
 function applyNodeOcrPolyfills() {
+  const global = globalThis as Record<string, unknown>;
+
   if (typeof globalThis.DOMMatrix === "undefined") {
-    // Polyfill shape differs from lib.dom DOMMatrix; runtime behavior is sufficient for pdfjs.
-    (globalThis as Record<string, unknown>).DOMMatrix = DOMMatrixPolyfill;
+    global.DOMMatrix = DOMMatrix;
+  }
+  if (typeof globalThis.Path2D === "undefined") {
+    global.Path2D = Path2D;
+  }
+  if (typeof globalThis.ImageData === "undefined") {
+    global.ImageData = ImageData;
   }
 }
 

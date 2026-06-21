@@ -82,6 +82,11 @@ export async function processMaterialExtraction(
     .eq("user_id", userId);
 
   try {
+    console.info("[materials/extraction] starting OCR", {
+      materialId,
+      mimeType: row.mime_type,
+      fileSizeBytes: row.file_size_bytes,
+    });
     const buffer = await downloadMaterialFile(supabase, row, userId);
     const { text, pageCount } = await runOcr(buffer, row.mime_type);
 
