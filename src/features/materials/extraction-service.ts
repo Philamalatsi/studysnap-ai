@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isStaleExtraction } from "@/lib/materials/processing";
 import { runOcr } from "@/lib/ocr/ocr-service";
 import { suggestTitleFromExtractedText } from "@/lib/materials/title";
 import { assertStoragePathOwned } from "@/lib/supabase/assert-storage-path";
@@ -53,7 +54,14 @@ export async function processMaterialExtraction(
   const row = material as Material;
 
   if (row.processing_status === "extracting") {
-    return { ok: false, error: "Extraction already in progress." };
+    if (!isStaleExtraction(row.processing_status, row.updated_at)) {
+      return { ok: false, error: "Extraction already in progress." };
+    }
+    console.warn("[materials/extraction] retrying stale extraction", {
+      materialId,
+      userId,
+      updatedAt: row.updated_at,
+    });
   }
 
   if (row.processing_status === "extracted" && row.extracted_text) {

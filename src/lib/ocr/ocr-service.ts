@@ -1,5 +1,7 @@
 import "server-only";
 
+import "@/lib/ocr/ensure-node-ocr-env";
+
 import { ensureNodeOcrEnv } from "@/lib/ocr/ensure-node-ocr-env";
 import { extractTextFromImage } from "@/lib/ocr/image-ocr";
 import { isImageMime, isPdfMime, isSupportedForOcr } from "@/lib/ocr/mime";

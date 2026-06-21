@@ -12,6 +12,7 @@ import {
   formatMaterialType,
   mimeTypeLabel,
 } from "@/lib/materials/display";
+import { isStaleExtraction } from "@/lib/materials/processing";
 import { getMaterialSignedUrl } from "@/lib/materials/storage";
 import type { MaterialStudyStatus } from "@/lib/materials/study-status";
 import { formatFileSize } from "@/lib/utils";
@@ -74,9 +75,15 @@ export default async function MaterialDetailPage({
     signedUrl = null;
   }
 
+  const extractionStale = isStaleExtraction(
+    material.processing_status,
+    material.updated_at,
+  );
+
   const showRetry =
     material.processing_status === "failed" ||
-    material.processing_status === "uploaded";
+    material.processing_status === "uploaded" ||
+    extractionStale;
 
   const hasExtractedText =
     material.processing_status === "extracted" &&
@@ -93,6 +100,7 @@ export default async function MaterialDetailPage({
       <MaterialProcessingRunner
         materialId={material.id}
         status={material.processing_status}
+        updatedAt={material.updated_at}
         hasExtractedText={hasExtractedText}
         openAiConfigured={isOpenAIConfigured()}
         summaryOutput={summaryOutput}
@@ -111,7 +119,9 @@ export default async function MaterialDetailPage({
             label={
               material.processing_status === "uploaded"
                 ? "Start processing"
-                : "Retry processing"
+                : material.processing_status === "extracting"
+                  ? "Retry extraction"
+                  : "Retry processing"
             }
           />
         )}
@@ -135,6 +145,7 @@ export default async function MaterialDetailPage({
 
         <MaterialDetailTabs
           material={material}
+          extractionStale={extractionStale}
           signedUrl={signedUrl}
           summaryOutput={summaryOutput}
           flashcardsOutput={flashcardsOutput}

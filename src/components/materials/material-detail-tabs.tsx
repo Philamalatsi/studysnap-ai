@@ -23,6 +23,7 @@ type TabId = (typeof TABS)[number]["id"];
 
 export function MaterialDetailTabs({
   material,
+  extractionStale = false,
   signedUrl,
   summaryOutput,
   flashcardsOutput,
@@ -30,6 +31,7 @@ export function MaterialDetailTabs({
   openAiConfigured,
 }: {
   material: Material;
+  extractionStale?: boolean;
   signedUrl: string | null;
   summaryOutput: StudyOutput | null;
   flashcardsOutput: StudyOutput | null;
@@ -146,7 +148,10 @@ export function MaterialDetailTabs({
       {activeTab === "overview" && (
         <div className="grid gap-6 lg:grid-cols-2">
           <MaterialPreview material={material} signedUrl={signedUrl} />
-          <ExtractedTextPanel material={material} />
+          <ExtractedTextPanel
+            material={material}
+            extractionStale={extractionStale}
+          />
         </div>
       )}
 

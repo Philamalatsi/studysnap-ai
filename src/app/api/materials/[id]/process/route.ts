@@ -8,6 +8,23 @@ import { createClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
+async function markExtractionFailed(
+  materialId: string,
+  userId: string,
+  message: string,
+) {
+  const supabase = await createClient();
+  await supabase
+    .from("materials")
+    .update({
+      processing_status: "failed",
+      error_message: message,
+    } as never)
+    .eq("id", materialId)
+    .eq("user_id", userId)
+    .eq("processing_status", "extracting");
+}
+
 export async function POST(
   _request: Request,
   context: { params: Promise<{ id: string }> },
@@ -62,6 +79,22 @@ export async function POST(
       message,
       stack: error instanceof Error ? error.stack : undefined,
     });
+
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        await markExtractionFailed(id, user.id, message);
+      }
+    } catch (cleanupError) {
+      console.error("[materials/process] failed to mark extraction failed", {
+        materialId: id,
+        cleanupError,
+      });
+    }
+
     return NextResponse.json({ error: message, ok: false }, { status: 500 });
   }
 }

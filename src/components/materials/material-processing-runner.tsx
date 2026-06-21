@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { isStaleExtraction } from "@/lib/materials/processing";
 import type { ProcessingStatus, StudyOutput } from "@/types/database";
 
 function isOutputBusy(output: StudyOutput | null) {
@@ -11,6 +12,7 @@ function isOutputBusy(output: StudyOutput | null) {
 export function MaterialProcessingRunner({
   materialId,
   status,
+  updatedAt,
   hasExtractedText,
   openAiConfigured,
   summaryOutput,
@@ -19,6 +21,7 @@ export function MaterialProcessingRunner({
 }: {
   materialId: string;
   status: ProcessingStatus;
+  updatedAt: string;
   hasExtractedText: boolean;
   openAiConfigured: boolean;
   summaryOutput: StudyOutput | null;
@@ -31,6 +34,8 @@ export function MaterialProcessingRunner({
   const outputs = [summaryOutput, flashcardsOutput, quizOutput];
   const outputBusy = outputs.some(isOutputBusy);
   const allReady = outputs.every((o) => o?.status === "ready");
+  const staleExtracting =
+    status === "extracting" && isStaleExtraction(status, updatedAt);
 
   const shouldPoll =
     status === "uploaded" ||
@@ -39,6 +44,7 @@ export function MaterialProcessingRunner({
 
   const shouldRunProcess =
     status === "uploaded" ||
+    staleExtracting ||
     (status === "extracted" &&
       hasExtractedText &&
       openAiConfigured &&

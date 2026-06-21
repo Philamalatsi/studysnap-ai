@@ -3,7 +3,13 @@ import { Badge } from "@/components/ui/badge";
 import { formatProcessingStatus } from "@/lib/materials/display";
 import type { Material } from "@/types/database";
 
-export function ExtractedTextPanel({ material }: { material: Material }) {
+export function ExtractedTextPanel({
+  material,
+  extractionStale = false,
+}: {
+  material: Material;
+  extractionStale?: boolean;
+}) {
   const { processing_status } = material;
 
   return (
@@ -31,10 +37,18 @@ export function ExtractedTextPanel({ material }: { material: Material }) {
           </p>
         )}
         {processing_status === "extracting" && (
-          <p className="text-sm text-muted">
-            Extracting text from your file. This may take a minute for large
-            PDFs or photos.
-          </p>
+          <div className="space-y-2">
+            <p className="text-sm text-muted">
+              Extracting text from your file. This may take a minute for large
+              PDFs or photos.
+            </p>
+            {extractionStale && (
+              <p className="text-xs text-amber-800">
+                Processing seems stuck. Use &ldquo;Retry extraction&rdquo; above
+                to try again.
+              </p>
+            )}
+          </div>
         )}
         {processing_status === "failed" && (
           <div className="space-y-2">
